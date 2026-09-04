@@ -271,7 +271,7 @@ export function Impostazioni() {
         </details>
         <details>
           <summary>
-            <b>FM pesata</b>, <b>Punteggio FCP</b>, <b>Solidità</b>, <b>Res. infortuni</b>
+            <b>FM pesata</b> e <b>Punteggio FCP</b>
           </summary>
           <div className="small col" style={{ gap: 4 }}>
             <p style={{ margin: 0 }}>
@@ -282,13 +282,6 @@ export function Impostazioni() {
             <p style={{ margin: 0 }}>
               <b>Punteggio FCP</b> — punteggio 0–100 dell'algoritmo di fantacalciopedia
               (loro giudizio complessivo). Preso da loro, non calcolato.
-            </p>
-            <p style={{ margin: 0 }}>
-              <b>Solidità inv.</b> — quanto è "sicuro" l'investimento (rischio panchina /
-              bocciatura), % di fantacalciopedia.
-            </p>
-            <p style={{ margin: 0 }}>
-              <b>Res. infortuni</b> — storico di tenuta fisica, % di fantacalciopedia.
             </p>
           </div>
         </details>

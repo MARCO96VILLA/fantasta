@@ -16,12 +16,12 @@ interface Info {
 export function PlayerCard({ playerId }: { playerId: number }) {
   const base = PLAYER_BY_ID.get(playerId);
   const u = useStore((s) => s.userData[playerId]);
+  const tagDefs = useStore((s) => s.tagDefs);
   const settings = useStore((s) => s.settings);
   const auction = useStore((s) => s.auction);
   const setNota = useStore((s) => s.setNota);
   const setOverride = useStore((s) => s.setOverride);
   const [info, setInfo] = useState<Info | null>(null);
-  const [notaAperta, setNotaAperta] = useState(false);
 
   // qualsiasi tap chiude il riquadro info; se il tap è su un'altra ⓘ, il suo
   // handler (che vede lo stato "chiuso") lo riapre subito con la nuova info
@@ -39,6 +39,7 @@ export function PlayerCard({ playerId }: { playerId: number }) {
   const p = effectivePlayer(base, u);
   const taken = takenIndex(settings, auction).get(playerId);
   const f = p.fpedia;
+  const myTags = tagDefs.filter((t) => u?.tags.includes(t.id));
 
   const stat = (label: string, v: string, text: string, cls?: string) => (
     <Stat
@@ -52,11 +53,11 @@ export function PlayerCard({ playerId }: { playerId: number }) {
 
   return (
     <div className="col" style={{ gap: 14 }}>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div className="row">
+      <div className="pc-head">
+        <div style={{ minWidth: 0 }}>
+          <div className="row" style={{ gap: 8 }}>
             <span className={`role ${p.ruolo}`}>{p.ruolo}</span>
-            <h2 style={{ fontSize: 20 }}>{p.alias ?? p.nome}</h2>
+            <h2 className="pc-name">{p.alias ?? p.nome}</h2>
           </div>
           <div className="muted small">
             {p.alias && p.alias !== p.nome ? `${p.nome} · ` : ''}
@@ -64,7 +65,7 @@ export function PlayerCard({ playerId }: { playerId: number }) {
             {p.ruoloMantra.length ? ` · Mantra: ${p.ruoloMantra.join(' / ')}` : ''}
           </div>
         </div>
-        <div style={{ textAlign: 'right', flex: 'none' }}>
+        <div className="pc-price" style={{ textAlign: 'right', flex: 'none' }}>
           {u?.targetMax != null ? (
             <>
               <div style={{ color: 'var(--accent)', fontWeight: 800, fontSize: 34, lineHeight: 1 }}>
@@ -97,32 +98,41 @@ export function PlayerCard({ playerId }: { playerId: number }) {
         </div>
       )}
 
-      {/* I MIEI APPUNTI — in cima, sopra i tag del giocatore */}
-      <div className="panel col" style={{ gap: 8, background: 'var(--panel-2)' }}>
-        <h3>I miei appunti</h3>
-        <TagChips playerId={playerId} />
-        <div className="row wrap" style={{ gap: 12 }}>
-          <label className="row small">
-            Prezzo di riferimento <TargetInput playerId={playerId} />
-          </label>
-          <label className="row small">
-            Interesse <InteresseStars playerId={playerId} />
-          </label>
-          {u?.nota == null && !notaAperta && (
-            <button className="ghost small" onClick={() => setNotaAperta(true)}>
-              + nota
-            </button>
+      {/* I MIEI APPUNTI — collassati: si vedono subito solo i tag già assegnati */}
+      <div className="panel col" style={{ gap: 6, background: 'var(--panel-2)' }}>
+        <div className="row wrap" style={{ gap: 6, alignItems: 'center' }}>
+          {myTags.length ? (
+            myTags.map((t) => (
+              <span key={t.id} className="chip" style={{ background: t.color }}>
+                {t.label}
+              </span>
+            ))
+          ) : (
+            <span className="small muted">Nessun tag assegnato</span>
           )}
+          {!!u?.interesse && <span title="Interesse">{'★'.repeat(u.interesse)}</span>}
         </div>
-        {(u?.nota != null || notaAperta) && (
-          <textarea
-            rows={2}
-            autoFocus={notaAperta}
-            placeholder="Nota…"
-            value={u?.nota ?? ''}
-            onChange={(e) => setNota(playerId, e.target.value)}
-          />
-        )}
+        {u?.nota && <p className="small muted" style={{ margin: 0 }}>"{u.nota}"</p>}
+        <details>
+          <summary className="small muted">modifica appunti</summary>
+          <div className="col" style={{ gap: 10, marginTop: 8 }}>
+            <TagChips playerId={playerId} />
+            <div className="row wrap" style={{ gap: 14 }}>
+              <label className="row small">
+                Prezzo di riferimento <TargetInput playerId={playerId} />
+              </label>
+              <label className="row small">
+                Interesse <InteresseStars playerId={playerId} />
+              </label>
+            </div>
+            <textarea
+              rows={2}
+              placeholder="Nota…"
+              value={u?.nota ?? ''}
+              onChange={(e) => setNota(playerId, e.target.value)}
+            />
+          </div>
+        </details>
       </div>
 
       {p.senzaStoricoSerieA && (
@@ -177,16 +187,6 @@ export function PlayerCard({ playerId }: { playerId: number }) {
             f.punteggioAlgoritmo != null ? `${f.punteggioAlgoritmo}/100` : '–',
             "Punteggio 0–100 dell'algoritmo di fantacalciopedia: la loro sintesi di quanto vale il giocatore per l'asta. Non calcolato da noi.",
           )}
-          {stat(
-            'Solidità inv.',
-            f.soliditaInvestimento != null ? `${f.soliditaInvestimento}%` : '–',
-            "Solidità dell'investimento (fantacalciopedia): quanto è 'sicuro' puntarci — rischio panchina / bocciatura. Dato loro.",
-          )}
-          {stat(
-            'Res. infortuni',
-            f.resistenzaInfortuni != null ? `${f.resistenzaInfortuni}%` : '–',
-            'Resistenza agli infortuni (fantacalciopedia): storico di tenuta fisica. Dato loro.',
-          )}
         </div>
         {info && (
           <div
@@ -218,10 +218,12 @@ export function PlayerCard({ playerId }: { playerId: number }) {
       </div>
 
       {f.consigli && (
-        <div>
-          <h3>Consiglio asta (fantacalciopedia)</h3>
-          <p className="small">{f.consigli}</p>
-        </div>
+        <details>
+          <summary className="small muted">Consiglio asta (fantacalciopedia)</summary>
+          <p className="small" style={{ marginTop: 6 }}>
+            {f.consigli}
+          </p>
+        </details>
       )}
 
       <details>

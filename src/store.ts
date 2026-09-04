@@ -27,6 +27,7 @@ const DEFAULT_TAGS: TagDef[] = [
   { id: 'lowcost', label: 'Alternativa low-cost', color: '#b45309' },
   { id: 'no', label: 'Da evitare', color: '#b91c1c' },
   { id: 'dubbio', label: 'Dubbio', color: '#6b7280' },
+  { id: 'infortunato', label: 'Infortunato', color: '#e11d48' },
 ];
 
 interface State {
@@ -156,6 +157,18 @@ export const useStore = create<State>()(
 
       replaceState: (partial) => set((s) => ({ ...s, ...partial })),
     }),
-    { name: 'fantasta-v1' },
+    {
+      name: 'fantasta-v1',
+      version: 1,
+      // aggiunge i tag di default introdotti dopo il primo salvataggio (es. "Infortunato")
+      // senza toccare quelli già personalizzati dall'utente
+      migrate: (persisted) => {
+        const s = persisted as State;
+        const have = new Set((s.tagDefs ?? []).map((t) => t.id));
+        const mancanti = DEFAULT_TAGS.filter((t) => !have.has(t.id));
+        if (mancanti.length) s.tagDefs = [...(s.tagDefs ?? []), ...mancanti];
+        return s;
+      },
+    },
   ),
 );

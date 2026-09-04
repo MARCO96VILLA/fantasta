@@ -406,6 +406,9 @@ button:focus-visible {
   flex-direction: column;
   gap: 8px;
 }
+.prow.taken {
+  opacity: 0.55;
+}
 .prow {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -597,6 +600,58 @@ table.data th.num {
     border: none;
     min-height: 100svh;
     width: 100%;
+  }
+}
+
+/* ---------- scheda giocatore: header ---------- */
+.pc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.pc-name {
+  font-size: clamp(16px, 5.2vw, 20px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 760px) {
+  .pc-head {
+    flex-direction: column;
+  }
+  .pc-head .pc-price {
+    text-align: left !important;
+    align-self: stretch;
+  }
+}
+
+/* ---------- sheet (dropdown a scorrimento, richiudibile) ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgba(0, 0, 0, 0.35);
+}
+.sheet-panel {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  top: 96px;
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 12px;
+  z-index: 40;
+  box-shadow: var(--shadow);
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 761px) {
+  .sheet-panel {
+    left: auto;
+    width: 380px;
   }
 }
 

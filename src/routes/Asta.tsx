@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store.ts';
 import { PLAYER_BY_ID } from '../data.ts';
 import { searchPlayers } from '../lib/search.ts';
-import { allTeamStatus, takenIndex } from '../selectors.ts';
+import { allTeamStatus, takenIndex, type TeamStatus } from '../selectors.ts';
+import { RUOLI } from '../types.ts';
 import { PlayerCard } from '../components/PlayerCard.tsx';
 import { AssignPanel } from '../components/AssignPanel.tsx';
 import { usePlayerModal } from '../components/PlayerModal.tsx';
+import { PlayerList } from '../components/PlayerList.tsx';
+import { SheetButton } from '../components/Sheet.tsx';
 
 export function Asta() {
   const settings = useStore((s) => s.settings);
@@ -36,35 +39,40 @@ export function Asta() {
     searchRef.current?.focus();
   }
 
-  const recent = [...auction].sort((a, b) => b.ts - a.ts).slice(0, 15);
+  const recent = [...auction].sort((a, b) => b.ts - a.ts).slice(0, 30);
 
   return (
     <div className={`col${selected != null ? ' asta-picking' : ''}`} style={{ gap: 12 }}>
       <div className="row wrap" style={{ justifyContent: 'space-between' }}>
         <h1>Asta · {auction.length}/{settings.teams.length * 25}</h1>
-        <button className="small" onClick={undoLast} disabled={!auction.length}>
-          ↩ Annulla ultimo
-        </button>
-      </div>
-
-      {/* strip crediti squadre */}
-      <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-        {teams.map((t) => (
-          <div
-            key={t.id}
-            className="panel"
-            style={{ padding: '6px 10px', flex: 'none', textAlign: 'center', minWidth: 92 }}
-          >
-            <div className="small" style={{ fontWeight: t.isMine ? 700 : 500, whiteSpace: 'nowrap' }}>
-              {t.nome}
-              {t.isMine ? ' ★' : ''}
-            </div>
-            <div style={{ fontWeight: 700 }}>{t.residuo}</div>
-            <div className="small muted">
-              {t.slotOccupati}/{t.slotTotali} · max {t.maxOfferta}
-            </div>
-          </div>
-        ))}
+        <div className="row wrap" style={{ gap: 6 }}>
+          <SheetButton icon="👥" label="Squadre">
+            {teams.map((t) => (
+              <TeamPreview key={t.id} t={t} />
+            ))}
+          </SheetButton>
+          <SheetButton icon="🕓" label="Ultimi" badge={recent.length || undefined}>
+            {recent.map((a) => {
+              const p = PLAYER_BY_ID.get(a.playerId);
+              const team = settings.teams.find((tm) => tm.id === a.teamId);
+              if (!p) return null;
+              return (
+                <div key={a.playerId} className="row" style={{ justifyContent: 'space-between' }}>
+                  <a onClick={() => open(a.playerId)} style={{ cursor: 'pointer' }}>
+                    <span className={`role ${p.ruolo}`}>{p.ruolo}</span> {p.alias ?? p.nome}
+                  </a>
+                  <span className="muted small">
+                    {team?.nome} · <b>{a.prezzo}</b>
+                  </span>
+                </div>
+              );
+            })}
+            {!recent.length && <span className="muted small">Ancora nessun acquisto.</span>}
+          </SheetButton>
+          <button className="small" onClick={undoLast} disabled={!auction.length}>
+            ↩ Annulla ultimo
+          </button>
+        </div>
       </div>
 
       {selected == null ? (
@@ -73,7 +81,7 @@ export function Asta() {
             <input
               ref={searchRef}
               type="search"
-              placeholder="Cerca giocatore…"
+              placeholder="Cerca giocatore e premi Invio…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
@@ -116,26 +124,7 @@ export function Asta() {
             )}
           </div>
 
-          <div className="panel col" style={{ gap: 4 }}>
-            <h3>Ultimi acquisti</h3>
-            {recent.map((a) => {
-              const p = PLAYER_BY_ID.get(a.playerId);
-              const team = settings.teams.find((t) => t.id === a.teamId);
-              if (!p) return null;
-              return (
-                <div key={a.playerId} className="row" style={{ justifyContent: 'space-between' }}>
-                  <span className="row" style={{ gap: 6 }} onClick={() => open(a.playerId)}>
-                    <span className={`role ${p.ruolo}`}>{p.ruolo}</span>
-                    <span>{p.alias ?? p.nome}</span>
-                  </span>
-                  <span className="muted small">
-                    {team?.nome} · <b>{a.prezzo}</b>
-                  </span>
-                </div>
-              );
-            })}
-            {!recent.length && <span className="muted small">Ancora nessun acquisto.</span>}
-          </div>
+          <PlayerList onPick={pick} />
         </>
       ) : (
         <>
@@ -150,6 +139,35 @@ export function Asta() {
           <AssignPanel playerId={selected} onDone={afterAssign} />
         </>
       )}
+    </div>
+  );
+}
+
+function TeamPreview({ t }: { t: TeamStatus }) {
+  return (
+    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div>
+        <div style={{ fontWeight: t.isMine ? 700 : 500 }}>
+          {t.nome}
+          {t.isMine ? ' ★' : ''}
+        </div>
+        <div className="small muted">
+          {RUOLI.map((r) => (
+            <span key={r} style={{ marginRight: 8 }}>
+              <span className={`role ${r}`} style={{ width: 15, height: 15, fontSize: 9, marginRight: 2 }}>
+                {r}
+              </span>
+              {t.perRuolo[r].occ}/{t.perRuolo[r].tot}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="small" style={{ textAlign: 'right' }}>
+        <div>
+          <b>{t.residuo}€</b>
+        </div>
+        <div className="muted">max {t.maxOfferta}</div>
+      </div>
     </div>
   );
 }
