@@ -7,7 +7,8 @@
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readSheet, findRaw, num, numOrNull, normName } from './lib.ts';
-import type { Player, Ruolo, StagioneStats, FpediaData, PlayerFlags, PlayersMeta } from '../src/types.ts';
+import { RUOLO_LABEL } from '../src/types.ts';
+import type { Player, Ruolo, StagioneStats, FpediaData, PlayersMeta } from '../src/types.ts';
 
 const OUT_DIR = join(process.cwd(), 'src', 'data');
 const STAGIONE_CORRENTE = '2026-27';
@@ -43,7 +44,10 @@ for (const row of readSheet(listoneCorr.path, 'Tutti')) {
     fvm: num(row['FVM']),
     storico: {},
     fpedia: {},
-    flags: { rigorista: false, assistman: false, titolare: false, buonaMedia: false, goleador: false, fuoriclasse: false, piazzati: false },
+    flags: { rigorista: false, assistman: false, titolare: false, buonaMedia: false, goleador: false, fuoriclasse: false },
+    flagPerche: {},
+    fpediaTags: [],
+    senzaStoricoSerieA: true,
     convenienza: null,
     fmPesata: null,
     affidabilita: null,
@@ -146,18 +150,34 @@ if (existsSync(fpediaCache)) {
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase())
       .trim();
-    for (const k of ['rigorista', 'assistman', 'titolare', 'buonaMedia', 'goleador', 'fuoriclasse', 'piazzati'] as const) {
-      if (rf[k]) p.flags[k] = true;
-    }
-    p.fonti.flags = 'fpedia';
+    // tag EDITORIALI di fantacalciopedia: solo informativi, non toccano p.flags
+    const TAGLBL: Record<string, string> = {
+      rigorista: 'Rigorista',
+      assistman: 'Assistman',
+      titolare: 'Titolare',
+      buonaMedia: 'Buona media',
+      goleador: 'Goleador',
+      fuoriclasse: 'Fuoriclasse',
+      piazzati: 'Calci piazzati',
+      panchinaro: 'Panchinaro',
+      outsider: 'Outsider',
+    };
+    p.fpediaTags = Object.keys(rf)
+      .filter((k) => rf[k] && TAGLBL[k])
+      .map((k) => TAGLBL[k]);
   }
   console.log(`Fpedia: ${conFpedia}/${players.size} giocatori arricchiti`);
 } else {
   console.log('Fpedia: cache assente (scripts/.cache/fpedia.json) — salto arricchimento');
 }
 
-// ---------- 4. Euristiche: fantamedia pesata, affidabilità, rigorista, flags derivate ----------
+// ---------- 4. Fantamedia pesata, affidabilità, flag (dalle statistiche ufficiali) ----------
+const PENULTIMA = '2024-25';
+const ST_LABEL = (k: string) => k.slice(2).replace('-', '/'); // "2025-26" -> "25/26"
+const GOL_SOGLIA: Record<Ruolo, number> = { A: 10, C: 6, D: 3, P: 99 };
+
 for (const p of players.values()) {
+  // -- fantamedia storica pesata (stagioni con >=5 presenze) --
   let wSum = 0;
   let fmSum = 0;
   let pvSum = 0;
@@ -176,20 +196,65 @@ for (const p of players.values()) {
     p.fonti.fmPesata = 'euristica';
   }
 
-  // rigorista: forte segnale = rigori calciati nelle ultime 2 stagioni concluse
-  const rigRecenti =
-    (p.storico['2025-26']?.rigCalciati ?? 0) + (p.storico['2024-25']?.rigCalciati ?? 0);
-  if (rigRecenti >= 2 && !p.flags.rigorista) {
-    p.flags.rigorista = true;
-    if (p.fonti.flags !== 'fpedia') p.fonti.flags = 'euristica';
-  }
+  const s1 = p.storico[ULTIMA_CONCLUSA]; // 2025-26
+  const s2 = p.storico[PENULTIMA]; // 2024-25
+  const utili = [s1, s2].filter((s): s is StagioneStats => !!s && s.pv >= 5);
+  p.senzaStoricoSerieA = utili.length === 0;
 
-  // buona media / goleador / assistman derivati se fpedia assente
-  const last = p.storico[ULTIMA_CONCLUSA];
-  if (last && last.pv >= 15) {
-    if (!p.flags.buonaMedia && last.mv != null && last.mv >= 6.1) p.flags.buonaMedia = true;
-    if (!p.flags.goleador && p.ruolo !== 'P' && last.golFatti >= 8) p.flags.goleador = true;
-    if (!p.flags.assistman && last.assist >= 6) p.flags.assistman = true;
+  if (!p.senzaStoricoSerieA) {
+    // --- flag calcolati dalle statistiche ---
+    const rig = (s1?.rigCalciati ?? 0) + (s2?.rigCalciati ?? 0);
+    if ((s1?.rigCalciati ?? 0) >= 3 || ((s1?.rigCalciati ?? 0) >= 2 && (s2?.rigCalciati ?? 0) >= 2)) {
+      p.flags.rigorista = true;
+      p.flagPerche.rigorista = `${rig} rigori calciati nelle ultime 2 stagioni`;
+    }
+
+    const presMedia = Math.round(utili.reduce((a, s) => a + s.pv, 0) / utili.length);
+    if (presMedia >= 24) {
+      p.flags.titolare = true;
+      p.flagPerche.titolare = `media ${presMedia} presenze su 38 (ultime ${utili.length})`;
+    }
+
+    if (s1 && s1.pv >= 15) {
+      if (p.ruolo !== 'P' && s1.golFatti >= GOL_SOGLIA[p.ruolo]) {
+        p.flags.goleador = true;
+        p.flagPerche.goleador = `${s1.golFatti} gol nel ${ST_LABEL(ULTIMA_CONCLUSA)}`;
+      }
+      const assMedia = utili.reduce((a, s) => a + s.assist, 0) / utili.length;
+      if (s1.assist >= 5 || assMedia >= 4) {
+        p.flags.assistman = true;
+        p.flagPerche.assistman = `${s1.assist} assist nel ${ST_LABEL(ULTIMA_CONCLUSA)}`;
+      }
+      if (s1.mv != null && s1.mv >= 6.1) {
+        p.flags.buonaMedia = true;
+        p.flagPerche.buonaMedia = `media voto ${s1.mv.toFixed(2)} nel ${ST_LABEL(ULTIMA_CONCLUSA)}`;
+      }
+    }
+  } else {
+    // nessuno storico in A: usa i tag editoriali di fantacalciopedia come stima
+    const has = (t: string) => p.fpediaTags.includes(t);
+    if (has('Rigorista')) p.flags.rigorista = true;
+    if (has('Titolare')) p.flags.titolare = true;
+    if (has('Goleador')) p.flags.goleador = true;
+    if (has('Assistman')) p.flags.assistman = true;
+    if (has('Buona media')) p.flags.buonaMedia = true;
+    for (const k of ['rigorista', 'titolare', 'goleador', 'assistman', 'buonaMedia'] as const) {
+      if (p.flags[k]) p.flagPerche[k] = 'stima fantacalciopedia (nessuno storico in Serie A)';
+    }
+  }
+}
+
+// fuoriclasse: fantamedia pesata nel top ~10% del reparto
+for (const ruolo of ['P', 'D', 'C', 'A'] as Ruolo[]) {
+  const conFm = [...players.values()]
+    .filter((p) => p.ruolo === ruolo && p.fmPesata != null)
+    .sort((a, b) => b.fmPesata! - a.fmPesata!);
+  const soglia = conFm[Math.max(0, Math.ceil(conFm.length * 0.1) - 1)]?.fmPesata ?? 99;
+  for (const p of conFm) {
+    if (p.fmPesata! >= soglia && p.affidabilita != null && p.affidabilita >= 0.6) {
+      p.flags.fuoriclasse = true;
+      p.flagPerche.fuoriclasse = `fantamedia storica ${p.fmPesata} — tra i migliori ${RUOLO_LABEL[ruolo].toLowerCase()}`;
+    }
   }
 }
 
@@ -271,5 +336,5 @@ interface FpediaRecord {
   trend?: 'UP' | 'DOWN' | 'STABLE';
   consigli?: string;
   url?: string;
-  flags?: Partial<PlayerFlags>;
+  flags?: Record<string, boolean>;
 }

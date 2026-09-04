@@ -40,16 +40,50 @@ export function PlayerCard({ playerId }: { playerId: number }) {
           <div className="muted small">
             Qt.I {p.qtI} · FVM {p.fvm}
           </div>
+          {u?.targetMax != null && (
+            <div style={{ color: 'var(--accent)', fontWeight: 700, marginTop: 2 }}>
+              rif. {u.targetMax}
+            </div>
+          )}
         </div>
       </div>
 
       {taken && (
         <div className="panel" style={{ background: 'var(--warn-bg)', borderColor: 'transparent', padding: 10 }}>
           Preso da <b>{taken.teamNome}</b> per <b>{taken.prezzo}</b>
+          {u?.targetMax != null && (
+            <span className="muted"> · tuo riferimento {u.targetMax}</span>
+          )}
         </div>
       )}
 
-      <PlayerBadges player={p} />
+      {p.senzaStoricoSerieA && (
+        <div className="small muted">
+          Nessuna stagione utile in Serie A: i tag qui sotto sono una <b>stima di fantacalciopedia</b>,
+          non calcolati sui dati.
+        </div>
+      )}
+
+      <div className="col" style={{ gap: 6 }}>
+        <PlayerBadges player={p} />
+        {(FLAG_META.some((f) => p.flags[f.key]) || p.fpediaTags.length > 0) && (
+          <details>
+            <summary className="small muted">perché questi tag?</summary>
+            <div className="col small" style={{ gap: 3, marginTop: 6 }}>
+              {FLAG_META.filter((f) => p.flags[f.key]).map((f) => (
+                <span key={f.key}>
+                  <b>{f.label}</b> — {p.flagPerche[f.key] ?? f.descr}
+                </span>
+              ))}
+              {p.fpediaTags.length > 0 && (
+                <span className="muted" style={{ marginTop: 4 }}>
+                  Tag editoriali di fantacalciopedia (non calcolati): {p.fpediaTags.join(', ')}
+                </span>
+              )}
+            </div>
+          </details>
+        )}
+      </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))' }}>
         <Stat label="Convenienza" v={p.convenienza == null ? '–' : String(p.convenienza)} cls={convClass(p.convenienza)} />
@@ -62,7 +96,13 @@ export function PlayerCard({ playerId }: { playerId: number }) {
       {(f.presenzePreviste || f.golPrevisti || f.assistPrevisti) && (
         <div className="small muted">
           Previsione {p.fpedia.trend ? `(trend ${p.fpedia.trend}) ` : ''}·{' '}
-          Presenze {range(f.presenzePreviste)} · Gol {range(f.golPrevisti)} · Assist {range(f.assistPrevisti)}
+          Presenze {range(f.presenzePreviste)}
+          {p.ruolo !== 'P' && (
+            <>
+              {' '}
+              · Gol {range(f.golPrevisti)} · Assist {range(f.assistPrevisti)}
+            </>
+          )}
         </div>
       )}
 
@@ -81,14 +121,18 @@ export function PlayerCard({ playerId }: { playerId: number }) {
       <div className="panel col" style={{ gap: 10, background: 'var(--panel-2)' }}>
         <h3>I miei appunti</h3>
         <TagChips playerId={playerId} />
-        <div className="row" style={{ gap: 14 }}>
+        <div className="row wrap" style={{ gap: 14 }}>
           <label className="row small">
-            Prezzo max <TargetInput playerId={playerId} />
+            Prezzo di riferimento <TargetInput playerId={playerId} />
           </label>
           <label className="row small">
             Interesse <InteresseStars playerId={playerId} />
           </label>
         </div>
+        <p className="small muted" style={{ margin: 0 }}>
+          Il prezzo di riferimento è solo un promemoria/benchmark: in asta puoi comunque
+          assegnare qualsiasi cifra, viene solo evidenziato se lo superi.
+        </p>
         <textarea
           rows={2}
           placeholder="Nota…"

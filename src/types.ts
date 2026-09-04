@@ -51,17 +51,47 @@ export interface PlayerFlags {
   buonaMedia: boolean;
   goleador: boolean;
   fuoriclasse: boolean;
-  piazzati: boolean;
 }
 
-export const FLAG_META: { key: keyof PlayerFlags; label: string; cls: string }[] = [
-  { key: 'rigorista', label: 'Rigorista', cls: 'rig' },
-  { key: 'assistman', label: 'Assistman', cls: 'ass' },
-  { key: 'titolare', label: 'Titolare', cls: 'tit' },
-  { key: 'buonaMedia', label: 'Buona media', cls: 'med' },
-  { key: 'goleador', label: 'Goleador', cls: 'gol' },
-  { key: 'fuoriclasse', label: 'Fuoriclasse', cls: 'fc' },
-  { key: 'piazzati', label: 'Calci piazzati', cls: 'ass' },
+export type FlagKey = keyof PlayerFlags;
+
+export const FLAG_META: { key: FlagKey; label: string; cls: string; descr: string }[] = [
+  {
+    key: 'rigorista',
+    label: 'Rigorista',
+    cls: 'rig',
+    descr: 'Ha calciato ≥3 rigori nell’ultima stagione, o ≥2 in ciascuna delle ultime due.',
+  },
+  {
+    key: 'titolare',
+    label: 'Titolare',
+    cls: 'tit',
+    descr: 'Media presenze ≥24 su 38 nelle ultime due stagioni di Serie A.',
+  },
+  {
+    key: 'goleador',
+    label: 'Goleador',
+    cls: 'gol',
+    descr: 'Gol nell’ultima stagione ≥ soglia di ruolo (A 10 · C 6 · D 3).',
+  },
+  {
+    key: 'assistman',
+    label: 'Assistman',
+    cls: 'ass',
+    descr: 'Almeno 5 assist nell’ultima stagione (o media ≥4 sulle ultime due).',
+  },
+  {
+    key: 'buonaMedia',
+    label: 'Buona media',
+    cls: 'med',
+    descr: 'Media voto (senza bonus) ≥6.1 nell’ultima stagione, con ≥15 presenze.',
+  },
+  {
+    key: 'fuoriclasse',
+    label: 'Fuoriclasse',
+    cls: 'fc',
+    descr: 'Fantamedia storica pesata tra le migliori del reparto (top ~10%).',
+  },
 ];
 
 export interface Player {
@@ -77,7 +107,10 @@ export interface Player {
   // storico per stagione: chiave "2025-26"
   storico: Record<string, StagioneStats>;
   fpedia: FpediaData;
-  flags: PlayerFlags;
+  flags: PlayerFlags; // calcolati dalle statistiche ufficiali (vedi FLAG_META)
+  flagPerche: Partial<Record<FlagKey, string>>; // motivo del flag, es. "12 gol nel 2025-26"
+  fpediaTags: string[]; // tag editoriali di fantacalciopedia (Fuoriclasse, Titolare, Panchinaro…)
+  senzaStoricoSerieA: boolean; // true = flag stimati (nessuna stagione utile in A)
   // indice calcolato dalla pipeline
   convenienza: number | null; // 0-100, relativo al reparto
   fmPesata: number | null; // fantamedia storica pesata

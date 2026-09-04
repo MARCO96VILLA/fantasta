@@ -170,8 +170,13 @@ function PRow({ p, onOpen }: { p: Player; onOpen: () => void }) {
       <span className="psq muted small">{p.squadra}</span>
       <span className="pflags">
         {FLAG_META.filter((f) => p.flags[f.key]).map((f) => (
-          <span key={f.key} className={`badge ${f.cls}`}>
+          <span
+            key={f.key}
+            className={`badge ${f.cls}`}
+            title={p.flagPerche[f.key] ? `${f.label}: ${p.flagPerche[f.key]}` : f.descr}
+          >
             {f.label.split(' ')[0]}
+            {p.senzaStoricoSerieA && p.flagPerche[f.key]?.startsWith('stima') ? '~' : ''}
           </span>
         ))}
       </span>

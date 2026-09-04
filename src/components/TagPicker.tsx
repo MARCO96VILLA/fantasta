@@ -34,7 +34,7 @@ export function TargetInput({ playerId }: { playerId: number }) {
     <input
       type="number"
       min={1}
-      placeholder="max €"
+      placeholder="rif. €"
       value={v ?? ''}
       onChange={(e) => set(playerId, e.target.value === '' ? undefined : Number(e.target.value))}
       style={{ width: 80 }}

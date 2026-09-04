@@ -81,10 +81,14 @@ export function AssignPanel({ playerId, onDone }: { playerId: number; onDone?: (
       </div>
       <div className="row wrap small" style={{ gap: 10, justifyContent: 'space-between' }}>
         <span>
-          {(overTarget || overMax) && (
+          {overTarget && (
+            <span style={{ color: 'var(--warn)', fontWeight: 600 }}>
+              sopra il tuo riferimento ({target}){overMax ? ' · ' : ''}
+            </span>
+          )}
+          {overMax && (
             <span style={{ color: 'var(--bad)', fontWeight: 600 }}>
-              {overTarget && `Oltre il tuo max (${target}). `}
-              {overMax && `Oltre l'offerta max di ${ts?.nome} (${ts?.maxOfferta}).`}
+              oltre l'offerta max di {ts?.nome} ({ts?.maxOfferta})
             </span>
           )}
         </span>

@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { useStore } from '../store.ts';
 import { RUOLI, RUOLO_LABEL } from '../types.ts';
 import { META } from '../data.ts';
-import { exportBackup, importBackup } from '../lib/backup.ts';
+import { exportBackup, importBackup, copyBackupToClipboard, importBackupText } from '../lib/backup.ts';
+import { FLAG_META } from '../types.ts';
 
 export function Impostazioni() {
   const settings = useStore((s) => s.settings);
@@ -123,10 +124,42 @@ export function Impostazioni() {
       </section>
 
       <section className="panel col">
-        <h2>Backup e dati</h2>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button onClick={exportBackup}>Esporta backup (JSON)</button>
-          <button onClick={() => fileRef.current?.click()}>Importa backup</button>
+        <h2>Backup e sincronizzazione</h2>
+        <p className="small muted" style={{ margin: 0 }}>
+          I tuoi dati (tag, prezzi di riferimento, acquisti) stanno <b>solo in questo
+          dispositivo/browser</b>: non si sincronizzano da soli tra PC e telefono, e
+          il push su GitHub aggiorna solo l'app, non i tuoi dati. Per spostarli usa
+          Esporta/Importa qui sotto.
+        </p>
+        <div className="row wrap">
+          <button onClick={exportBackup}>⬇ Esporta file JSON</button>
+          <button onClick={() => fileRef.current?.click()}>⬆ Importa da file</button>
+          <button
+            onClick={async () => {
+              try {
+                await copyBackupToClipboard();
+                setMsg('Backup copiato negli appunti — incollalo sull\'altro dispositivo.');
+              } catch {
+                setMsg('Copia non riuscita, usa il file JSON.');
+              }
+            }}
+          >
+            📋 Copia negli appunti
+          </button>
+          <button
+            onClick={() => {
+              const t = prompt('Incolla qui il backup copiato dall\'altro dispositivo:');
+              if (!t) return;
+              try {
+                importBackupText(t);
+                setMsg('Backup importato.');
+              } catch (err) {
+                setMsg('Errore: ' + (err as Error).message);
+              }
+            }}
+          >
+            📥 Incolla backup
+          </button>
           <input
             ref={fileRef}
             type="file"
@@ -147,7 +180,7 @@ export function Impostazioni() {
           <button
             className="danger"
             onClick={() => {
-              if (confirm('Azzerare tutte le assegnazioni d\'asta?')) resetAuction();
+              if (confirm("Azzerare tutte le assegnazioni d'asta?")) resetAuction();
             }}
           >
             Azzera asta
@@ -157,9 +190,52 @@ export function Impostazioni() {
         <p className="small muted">
           Catalogo: {META.numGiocatori} giocatori · stagione {META.stagioneCorrente} · dati generati il{' '}
           {new Date(META.generatoIl).toLocaleString('it-IT')} · {META.conFpedia} con dati fantacalciopedia.
-          <br />
-          Per aggiornare il listone: <code>npm run scrape</code> poi <code>npm run data</code>.
         </p>
+      </section>
+
+      <section className="panel col">
+        <h2>Come funziona</h2>
+        <details>
+          <summary>
+            <b>Convenienza</b> (0–100)
+          </summary>
+          <p className="small">
+            Per ogni reparto stimo la fantamedia tipica in funzione del prezzo
+            (<code>fm ≈ a + b·log(Qt.A)</code>) usando i giocatori con storico in Serie A.
+            La convenienza misura di quanto la <b>fantamedia storica pesata</b> del
+            giocatore (ultime 3 stagioni, più peso alle recenti, penalizzando le poche
+            presenze) sta <b>sopra</b> quella attesa per il suo prezzo. 50 ≈ in linea col
+            prezzo, &gt;65 rende più di quanto costa, &lt;35 il contrario. Chi non ha
+            storico in Serie A non ha un valore ("–").
+          </p>
+        </details>
+        <details>
+          <summary>
+            <b>Tag caratteristiche</b>
+          </summary>
+          <div className="small col" style={{ gap: 4 }}>
+            <p style={{ margin: 0 }}>
+              Calcolati dalle statistiche ufficiali fantacalcio.it (ultime 2 stagioni concluse).
+              Se un giocatore non ha stagioni utili in Serie A, si usa la stima editoriale
+              di fantacalciopedia (badge con "~").
+            </p>
+            {FLAG_META.map((f) => (
+              <p key={f.key} style={{ margin: 0 }}>
+                <b>{f.label}</b> — {f.descr}
+              </p>
+            ))}
+          </div>
+        </details>
+        <details>
+          <summary>
+            <b>Prezzo di riferimento</b>
+          </summary>
+          <p className="small">
+            È solo un tuo promemoria per l'asta, <b>non un limite</b>. Quando assegni un
+            prezzo più alto viene solo evidenziato in arancione. Serve come benchmark
+            quando il giocatore viene chiamato.
+          </p>
+        </details>
       </section>
     </div>
   );

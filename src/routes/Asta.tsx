@@ -10,6 +10,7 @@ import { usePlayerModal } from '../components/PlayerModal.tsx';
 export function Asta() {
   const settings = useStore((s) => s.settings);
   const auction = useStore((s) => s.auction);
+  const userData = useStore((s) => s.userData);
   const undoLast = useStore((s) => s.undoLast);
   const open = usePlayerModal((s) => s.open);
 
@@ -88,6 +89,7 @@ export function Asta() {
               <div className="col" style={{ gap: 4 }}>
                 {results.map((p, i) => {
                   const t = taken.get(p.id);
+                  const rif = userData[p.id]?.targetMax;
                   return (
                     <button
                       key={p.id}
@@ -100,6 +102,11 @@ export function Asta() {
                       <span className="muted small">{p.squadra}</span>
                       <span className="muted small">Qt {p.qtA}</span>
                       {p.convenienza != null && <span className="muted small">conv {p.convenienza}</span>}
+                      {rif != null && (
+                        <span className="badge fc" style={{ fontWeight: 700 }}>
+                          rif. {rif}
+                        </span>
+                      )}
                       {t && <span className="badge med">preso · {t.teamNome} {t.prezzo}</span>}
                     </button>
                   );
