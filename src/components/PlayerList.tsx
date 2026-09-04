@@ -90,6 +90,15 @@ export function PlayerList({
           {filtersOpen ? '▾' : '▸'} Filtri{activeFilters.length ? ` (${activeFilters.length})` : ''}
         </button>
 
+        {!filtersOpen && (
+          <div className="row wrap small muted" style={{ gap: 6, alignItems: 'center' }}>
+            <span>
+              ordine: {SORTS.find((s) => s.key === sort)?.label} {asc ? '▲' : '▼'}
+            </span>
+            {hideTaken && <span>· presi nascosti</span>}
+            {soloObiettivi && <span>· solo obiettivi</span>}
+          </div>
+        )}
         {!filtersOpen && activeFilters.length > 0 && (
           <div className="row wrap small" style={{ gap: 6 }}>
             {activeFilters.map((f, i) => (
@@ -101,7 +110,7 @@ export function PlayerList({
         )}
 
         {filtersOpen && (
-          <div className="col" style={{ gap: 8 }}>
+          <div className="col" style={{ gap: 10 }}>
             {showNameFilter && (
               <input
                 type="search"
@@ -142,32 +151,30 @@ export function PlayerList({
                 ))}
               </select>
             </div>
+
+            <div className="sortbar">
+              {SORTS.map((s) => (
+                <button
+                  key={s.key}
+                  className={sort === s.key ? 'on' : ''}
+                  onClick={() => (sort === s.key ? setAsc(!asc) : (setSort(s.key), setAsc(s.key === 'nome')))}
+                >
+                  {s.label} {sort === s.key ? (asc ? '▲' : '▼') : ''}
+                </button>
+              ))}
+            </div>
+            <div className="row wrap small" style={{ gap: 12 }}>
+              <label className="row" style={{ gap: 5 }}>
+                <input type="checkbox" style={{ width: 'auto' }} checked={hideTaken} onChange={(e) => setHideTaken(e.target.checked)} />
+                Nascondi presi
+              </label>
+              <label className="row" style={{ gap: 5 }}>
+                <input type="checkbox" style={{ width: 'auto' }} checked={soloObiettivi} onChange={(e) => setSoloObiettivi(e.target.checked)} />
+                Solo obiettivi
+              </label>
+            </div>
           </div>
         )}
-
-        <div className="row wrap" style={{ gap: 12, justifyContent: 'space-between' }}>
-          <div className="sortbar">
-            {SORTS.map((s) => (
-              <button
-                key={s.key}
-                className={sort === s.key ? 'on' : ''}
-                onClick={() => (sort === s.key ? setAsc(!asc) : (setSort(s.key), setAsc(s.key === 'nome')))}
-              >
-                {s.label} {sort === s.key ? (asc ? '▲' : '▼') : ''}
-              </button>
-            ))}
-          </div>
-          <div className="row wrap small" style={{ gap: 12 }}>
-            <label className="row" style={{ gap: 5 }}>
-              <input type="checkbox" style={{ width: 'auto' }} checked={hideTaken} onChange={(e) => setHideTaken(e.target.checked)} />
-              Nascondi presi
-            </label>
-            <label className="row" style={{ gap: 5 }}>
-              <input type="checkbox" style={{ width: 'auto' }} checked={soloObiettivi} onChange={(e) => setSoloObiettivi(e.target.checked)} />
-              Solo obiettivi
-            </label>
-          </div>
-        </div>
       </div>
 
       <p className="small muted" style={{ margin: 0 }}>
