@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit --fund=false --omit=optional
       - run: npm run build
         env:
           # deve combaciare col nome del repo: https://<utente>.github.io/<repo>/
