@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store.ts';
 import { RUOLI, RUOLO_LABEL } from '../types.ts';
 import { META } from '../data.ts';
-import { exportBackup, importBackup, copyBackupToClipboard, importBackupText } from '../lib/backup.ts';
+import { exportBackup, importBackup, backupJson, importBackupText } from '../lib/backup.ts';
 import { FLAG_META } from '../types.ts';
 
 export function Impostazioni() {
@@ -13,6 +13,14 @@ export function Impostazioni() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [showExport, setShowExport] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
+  const exportRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (showExport) exportRef.current?.select();
+  }, [showExport]);
 
   return (
     <div className="col" style={{ gap: 16, maxWidth: 900 }}>
@@ -132,34 +140,25 @@ export function Impostazioni() {
           Esporta/Importa qui sotto.
         </p>
         <div className="row wrap">
-          <button onClick={exportBackup}>⬇ Esporta file JSON</button>
-          <button onClick={() => fileRef.current?.click()}>⬆ Importa da file</button>
           <button
-            onClick={async () => {
-              try {
-                await copyBackupToClipboard();
-                setMsg('Backup copiato negli appunti — incollalo sull\'altro dispositivo.');
-              } catch {
-                setMsg('Copia non riuscita, usa il file JSON.');
-              }
+            className="primary"
+            onClick={() => {
+              setMsg('');
+              setShowExport(true);
             }}
           >
-            📋 Copia negli appunti
+            📤 Esporta / condividi
           </button>
           <button
             onClick={() => {
-              const t = prompt('Incolla qui il backup copiato dall\'altro dispositivo:');
-              if (!t) return;
-              try {
-                importBackupText(t);
-                setMsg('Backup importato.');
-              } catch (err) {
-                setMsg('Errore: ' + (err as Error).message);
-              }
+              setMsg('');
+              setImportText('');
+              setShowImport(true);
             }}
           >
-            📥 Incolla backup
+            📥 Importa
           </button>
+          <button onClick={() => fileRef.current?.click()}>⬆ Importa da file</button>
           <input
             ref={fileRef}
             type="file"
@@ -192,6 +191,97 @@ export function Impostazioni() {
           {new Date(META.generatoIl).toLocaleString('it-IT')} · {META.conFpedia} con dati fantacalciopedia.
         </p>
       </section>
+
+      {showExport && (
+        <div className="overlay" onClick={() => setShowExport(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="row" style={{ justifyContent: 'space-between', padding: '14px 16px 0' }}>
+              <h2 style={{ margin: 0 }}>Esporta backup</h2>
+              <button className="ghost" onClick={() => setShowExport(false)} aria-label="Chiudi">
+                ✕
+              </button>
+            </div>
+            <div className="col" style={{ padding: '10px 16px 16px', gap: 10 }}>
+              <p className="small muted" style={{ margin: 0 }}>
+                Il testo qui sotto è già selezionato: copialo e incollalo dove preferisci — es. in un
+                messaggio WhatsApp a te stesso — per portarlo sull'altro dispositivo. Lì apri{' '}
+                <b>Impostazioni → Importa</b> e incollalo.
+              </p>
+              <textarea
+                ref={exportRef}
+                readOnly
+                rows={10}
+                value={backupJson()}
+                onFocus={(e) => e.currentTarget.select()}
+                style={{ fontFamily: 'var(--mono)', fontSize: 12 }}
+              />
+              <div className="row wrap">
+                <button
+                  className="primary"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(backupJson());
+                      setMsg('Copiato negli appunti.');
+                    } catch {
+                      setMsg('Copia automatica non riuscita: seleziona il testo sopra e copialo a mano.');
+                    }
+                  }}
+                >
+                  📋 Copia
+                </button>
+                <button onClick={exportBackup}>⬇ Scarica file</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImport && (
+        <div className="overlay" onClick={() => setShowImport(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="row" style={{ justifyContent: 'space-between', padding: '14px 16px 0' }}>
+              <h2 style={{ margin: 0 }}>Importa backup</h2>
+              <button className="ghost" onClick={() => setShowImport(false)} aria-label="Chiudi">
+                ✕
+              </button>
+            </div>
+            <div className="col" style={{ padding: '10px 16px 16px', gap: 10 }}>
+              <p className="small muted" style={{ margin: 0 }}>
+                Tocca il campo e incolla (tieni premuto → Incolla) il testo copiato dall'altro dispositivo,
+                per intero.
+              </p>
+              <textarea
+                autoFocus
+                rows={10}
+                placeholder="Incolla qui il backup…"
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                style={{ fontFamily: 'var(--mono)', fontSize: 12 }}
+              />
+              <div className="row wrap">
+                <button
+                  className="primary"
+                  disabled={!importText.trim()}
+                  onClick={() => {
+                    try {
+                      importBackupText(importText);
+                      setMsg('Backup importato.');
+                      setShowImport(false);
+                    } catch (err) {
+                      setMsg('Errore: ' + (err as Error).message);
+                    }
+                  }}
+                >
+                  Importa
+                </button>
+                <button className="ghost" onClick={() => setShowImport(false)}>
+                  Annulla
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="panel col">
         <h2>Budget consigliato per reparto</h2>

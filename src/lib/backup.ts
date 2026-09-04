@@ -13,10 +13,17 @@ function payload() {
 }
 
 function applyPayload(data: Record<string, unknown>) {
-  if (data.app !== 'fantasta') throw new Error('File/testo non riconosciuto');
+  if (!data || typeof data !== 'object' || data.app !== 'fantasta') {
+    throw new Error('Testo non riconosciuto: non è un backup di Fantasta.');
+  }
   const patch: Record<string, unknown> = {};
   for (const k of KEYS) if (data[k] !== undefined) patch[k] = data[k];
   useStore.getState().replaceState(patch);
+}
+
+/** Il backup come stringa JSON, per copiarlo/incollarlo o mostrarlo in un textarea. */
+export function backupJson(): string {
+  return JSON.stringify(payload());
 }
 
 export function exportBackup() {
@@ -30,14 +37,19 @@ export function exportBackup() {
 }
 
 export async function importBackup(file: File): Promise<void> {
-  applyPayload(JSON.parse(await file.text()));
-}
-
-/** Backup come stringa (per copia/incolla, comodo da telefono). */
-export async function copyBackupToClipboard(): Promise<void> {
-  await navigator.clipboard.writeText(JSON.stringify(payload()));
+  applyPayload(parseBackupText(await file.text()));
 }
 
 export function importBackupText(text: string): void {
-  applyPayload(JSON.parse(text.trim()));
+  applyPayload(parseBackupText(text));
+}
+
+function parseBackupText(text: string): Record<string, unknown> {
+  const t = text.trim();
+  if (!t) throw new Error('Testo vuoto.');
+  try {
+    return JSON.parse(t);
+  } catch {
+    throw new Error('Testo non valido: controlla di aver incollato tutto il backup, per intero.');
+  }
 }
