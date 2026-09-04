@@ -63,6 +63,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* garantisce che l'attributo hidden vinca sempre, anche su elementi con display:flex/grid */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font: 14px/1.45 var(--sans);

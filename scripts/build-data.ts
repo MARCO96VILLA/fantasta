@@ -91,25 +91,74 @@ let conFpedia = 0;
 const fpediaCache = join(process.cwd(), 'scripts', '.cache', 'fpedia.json');
 if (existsSync(fpediaCache)) {
   const raw = JSON.parse(readFileSync(fpediaCache, 'utf-8')) as FpediaRecord[];
-  // indice per (nome normalizzato, squadra) e per cognome+squadra
-  // fpedia elenca il cognome per primo (es. "RAMOS GONCALO"), come il listone ("Ramos G.")
-  const byKey = new Map<string, FpediaRecord>();
-  const byCognome = new Map<string, FpediaRecord[]>();
-  for (const r of raw) {
-    const nn = normName(r.nome);
-    byKey.set(`${nn}|${normName(r.squadra)}`, r);
-    byKey.set(`~${nn.split(' ')[0]}|${normName(r.squadra)}`, r); // cognome + squadra
-    const cg = nn.split(' ')[0];
-    (byCognome.get(cg) ?? byCognome.set(cg, []).get(cg)!).push(r);
+  // fpedia elenca il cognome per primo (es. "RAMOS GONCALO"), come il listone ("Ramos G.").
+  // Più giocatori possono condividere il primo token del nome (es. "Martinez Jo." portiere
+  // e "Martinez L." attaccante, entrambi Inter; oppure "De Roon" e "De Marzi", cognomi
+  // composti che iniziano entrambi per "De"): il match esatto copre i casi semplici, per
+  // gli altri confrontiamo TUTTI i token (non solo il primo) e accettiamo solo un vincitore
+  // netto — se resta ambiguo è meglio non arricchire che assegnare i dati di un altro.
+  const byFullName = new Map<string, FpediaRecord>();
+  for (const r of raw) byFullName.set(`${normName(r.nome)}|${normName(r.squadra)}`, r);
+
+  /** Punteggio di quanto i token del nome combaciano (a[0] deve combaciare con b[0]: stesso cognome). */
+  function tokenMatchScore(a: string[], b: string[]): number {
+    if (a[0] !== b[0]) return 0;
+    let score = 1;
+    const used = new Set<number>();
+    for (const t of a.slice(1)) {
+      let matched = false;
+      for (let i = 1; i < b.length; i++) {
+        if (used.has(i)) continue;
+        const f = b[i];
+        if (f === t || f.startsWith(t) || t.startsWith(f)) {
+          used.add(i);
+          matched = true;
+          score += 1;
+          break;
+        }
+      }
+      // un token del listone (spesso un'iniziale) che non trova riscontro è una
+      // contraddizione forte — probabilmente è un altro giocatore con lo stesso cognome
+      // (vedi "El Azzouzi A." vs "El Azzouzi Oussama"): scarta subito il candidato.
+      if (!matched) return 0;
+    }
+    return score;
   }
+  /** Sceglie il candidato giusto tra più omonimi; undefined se resta ambiguo. */
+  function bestMatch(tokens: string[], candidates: FpediaRecord[]): FpediaRecord | undefined {
+    let best: FpediaRecord | undefined;
+    let bestScore = 0;
+    let ties = 0;
+    for (const c of candidates) {
+      const s = tokenMatchScore(tokens, normName(c.nome).split(' '));
+      if (s > bestScore) {
+        bestScore = s;
+        best = c;
+        ties = 1;
+      } else if (s === bestScore && s > 0) {
+        ties++;
+      }
+    }
+    // >=1: il solo primo token (cognome) in comune non basta, serve anche un riscontro in più
+    // o nessuna discrepanza — altrimenti "De Marzi" rischierebbe di prendersi i dati di "De Roon".
+    return bestScore >= 1 && ties === 1 ? best : undefined;
+  }
+
   for (const p of players.values()) {
-    const nn = normName(p.nome).replace(/ [a-z]$/, '');
+    const nn = normName(p.nome);
+    const tokens = nn.split(' ');
     const sq = normName(p.squadra);
-    const cognome = normName(p.nome).replace(/\.$/, '').split(' ')[0];
-    let rec = byKey.get(`${nn}|${sq}`) || byKey.get(`~${cognome}|${sq}`);
+    let rec = byFullName.get(`${nn}|${sq}`);
     if (!rec) {
-      const cand = byCognome.get(cognome) ?? byCognome.get(nn.split(' ')[0]);
-      if (cand && cand.length === 1) rec = cand[0];
+      // stessa squadra: qui basta che il cognome combaci, la squadra è già un forte segnale
+      rec = bestMatch(
+        tokens,
+        raw.filter((r) => normName(r.squadra) === sq),
+      );
+    }
+    if (!rec) {
+      // giocatore trasferito rispetto a quando fpedia l'ha scritto: cerca in tutta la lista
+      rec = bestMatch(tokens, raw);
     }
     if (!rec) {
       // overlap di token del nome (>=3 lettere), preferendo la stessa squadra
@@ -147,10 +196,14 @@ if (existsSync(fpediaCache)) {
     f.panchinaro = !!rf.panchinaro;
     f.outsider = !!rf.outsider;
     p.fpedia = f;
+    // Maiuscola solo la prima lettera di ogni parola (non \b\w: con lettere accentate come
+    // "gonçalo" quel regex capitalizza anche dopo la "ç", es. "GonçAlo").
     p.alias = rec.nome
       .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-      .trim();
+      .trim()
+      .split(' ')
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(' ');
     // tag EDITORIALI di fantacalciopedia: solo informativi, non toccano p.flags
     const TAGLBL: Record<string, string> = {
       rigorista: 'Rigorista',

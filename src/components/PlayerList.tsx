@@ -21,16 +21,23 @@ const SORTS: { key: SortKey; label: string }[] = [
 export function PlayerList({
   onPick,
   showNameFilter = true,
+  ruolo: ruoloProp,
+  onRuoloChange,
 }: {
   onPick: (id: number) => void;
   showNameFilter?: boolean;
+  /** Filtro ruolo controllato dall'esterno (es. la "fase" dell'asta in corso). */
+  ruolo?: Ruolo | '';
+  onRuoloChange?: (r: Ruolo | '') => void;
 }) {
   const userData = useStore((s) => s.userData);
   const settings = useStore((s) => s.settings);
   const auction = useStore((s) => s.auction);
   const tagDefs = useStore((s) => s.tagDefs);
 
-  const [ruolo, setRuolo] = useState<Ruolo | ''>('');
+  const [ruoloState, setRuoloState] = useState<Ruolo | ''>('');
+  const ruolo = ruoloProp !== undefined ? ruoloProp : ruoloState;
+  const setRuolo = onRuoloChange ?? setRuoloState;
   const [squadra, setSquadra] = useState('');
   const [tag, setTag] = useState('');
   const [flag, setFlag] = useState('');

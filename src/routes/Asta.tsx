@@ -3,7 +3,8 @@ import { useStore } from '../store.ts';
 import { PLAYER_BY_ID } from '../data.ts';
 import { searchPlayers } from '../lib/search.ts';
 import { allTeamStatus, takenIndex, type TeamStatus } from '../selectors.ts';
-import { RUOLI } from '../types.ts';
+import { RUOLI, RUOLO_LABEL } from '../types.ts';
+import type { Ruolo } from '../types.ts';
 import { PlayerCard } from '../components/PlayerCard.tsx';
 import { AssignPanel } from '../components/AssignPanel.tsx';
 import { usePlayerModal } from '../components/PlayerModal.tsx';
@@ -19,6 +20,7 @@ export function Asta() {
 
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
+  const [fase, setFase] = useState<Ruolo | ''>('');
   const searchRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => searchPlayers(q, 12), [q]);
@@ -75,58 +77,73 @@ export function Asta() {
         </div>
       </div>
 
-      {selected == null ? (
-        <>
-          <div className="panel col" style={{ gap: 8, position: 'sticky', top: 8, zIndex: 5 }}>
-            <input
-              ref={searchRef}
-              type="search"
-              placeholder="Cerca giocatore e premi Invio…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && results[0]) {
-                  e.preventDefault();
-                  pick(results[0].id);
-                }
-                if (e.key === 'Escape') setQ('');
-              }}
-              style={{ fontSize: 17 }}
-            />
-            {q && (
-              <div className="col" style={{ gap: 4 }}>
-                {results.map((p, i) => {
-                  const t = taken.get(p.id);
-                  const rif = userData[p.id]?.targetMax;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => pick(p.id)}
-                      style={{ textAlign: 'left', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '9px 10px' }}
-                    >
-                      {i === 0 && <span className="kbd">↵</span>}
-                      <span className={`role ${p.ruolo}`}>{p.ruolo}</span>
-                      <b>{p.alias ?? p.nome}</b>
-                      <span className="muted small">{p.squadra}</span>
-                      <span className="muted small">Qt {p.qtA}</span>
-                      {p.convenienza != null && <span className="muted small">conv {p.convenienza}</span>}
-                      {rif != null && (
-                        <span className="badge fc" style={{ fontWeight: 700 }}>
-                          rif. {rif}
-                        </span>
-                      )}
-                      {t && <span className="badge med">preso · {t.teamNome} {t.prezzo}</span>}
-                    </button>
-                  );
-                })}
-                {!results.length && <span className="muted small">Nessun risultato.</span>}
-              </div>
-            )}
-          </div>
+      <div className="row wrap" style={{ gap: 6, alignItems: 'center' }}>
+        <span className="small muted">Fase asta:</span>
+        <button className={fase === '' ? 'primary' : ''} onClick={() => setFase('')}>
+          Tutti i ruoli
+        </button>
+        {RUOLI.map((r) => (
+          <button key={r} className={fase === r ? 'primary' : ''} onClick={() => setFase(r)}>
+            <span className={`role ${r}`} style={{ marginRight: 5 }}>
+              {r}
+            </span>
+            {RUOLO_LABEL[r]}
+          </button>
+        ))}
+      </div>
 
-          <PlayerList onPick={pick} showNameFilter={false} />
-        </>
-      ) : (
+      <div hidden={selected != null} className="col" style={{ gap: 12 }}>
+        <div className="panel col" style={{ gap: 8, position: 'sticky', top: 8, zIndex: 5 }}>
+          <input
+            ref={searchRef}
+            type="search"
+            placeholder="Cerca giocatore e premi Invio…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && results[0]) {
+                e.preventDefault();
+                pick(results[0].id);
+              }
+              if (e.key === 'Escape') setQ('');
+            }}
+            style={{ fontSize: 17 }}
+          />
+          {q && (
+            <div className="col" style={{ gap: 4 }}>
+              {results.map((p, i) => {
+                const t = taken.get(p.id);
+                const rif = userData[p.id]?.targetMax;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => pick(p.id)}
+                    style={{ textAlign: 'left', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '9px 10px' }}
+                  >
+                    {i === 0 && <span className="kbd">↵</span>}
+                    <span className={`role ${p.ruolo}`}>{p.ruolo}</span>
+                    <b>{p.alias ?? p.nome}</b>
+                    <span className="muted small">{p.squadra}</span>
+                    <span className="muted small">Qt {p.qtA}</span>
+                    {p.convenienza != null && <span className="muted small">conv {p.convenienza}</span>}
+                    {rif != null && (
+                      <span className="badge fc" style={{ fontWeight: 700 }}>
+                        rif. {rif}
+                      </span>
+                    )}
+                    {t && <span className="badge med">preso · {t.teamNome} {t.prezzo}</span>}
+                  </button>
+                );
+              })}
+              {!results.length && <span className="muted small">Nessun risultato.</span>}
+            </div>
+          )}
+        </div>
+
+        <PlayerList onPick={pick} showNameFilter={false} ruolo={fase} onRuoloChange={setFase} />
+      </div>
+
+      {selected != null && (
         <>
           <div className="row">
             <button className="ghost small" onClick={() => setSelected(null)}>
