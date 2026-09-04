@@ -49,6 +49,7 @@ for (const row of readSheet(listoneCorr.path, 'Tutti')) {
     fpediaTags: [],
     senzaStoricoSerieA: true,
     convenienza: null,
+    prezzoConsigliato: 1,
     fmPesata: null,
     affidabilita: null,
     fonti: { qtA: 'listone', fvm: 'listone', ruolo: 'listone', squadra: 'listone' },
@@ -294,7 +295,62 @@ for (const ruolo of ['P', 'D', 'C', 'A'] as Ruolo[]) {
   }
 }
 
-// ---------- 6. Output ----------
+// ---------- 6. Prezzo d'asta stimato + budget consigliato per reparto ----------
+// Lega a 12 squadre, 500 crediti, rosa 3-8-8-6. Tutti i 6000 crediti vengono spesi
+// su 300 slot; molti slot vanno a 1 credito. Ripartiamo il monte crediti per reparto
+// e lo distribuiamo tra i primi (12 × slot) giocatori, proporzionale a (Qt.A-1) con
+// una leggera concentrazione sui top e un ritocco per la forma recente (convenienza).
+const N_SQUADRE = 12;
+const BUDGET = 500;
+const ROSA: Record<Ruolo, number> = { P: 3, D: 8, C: 8, A: 6 };
+const SPLIT: Record<Ruolo, number> = { P: 0.07, D: 0.15, C: 0.3, A: 0.48 }; // quota del budget per reparto
+const GAMMA = 1.12;
+
+const strategia: PlayersMeta['strategia'] = {} as PlayersMeta['strategia'];
+for (const ruolo of ['P', 'D', 'C', 'A'] as Ruolo[]) {
+  const perTeam = Math.round(BUDGET * SPLIT[ruolo]);
+  const pool = perTeam * N_SQUADRE;
+  const nSlot = ROSA[ruolo] * N_SQUADRE;
+  const gruppo = [...players.values()]
+    .filter((p) => p.ruolo === ruolo && !p.ceduto)
+    .sort((a, b) => b.qtA - a.qtA || b.fvm - a.fvm);
+  const tier = gruppo.slice(0, nSlot);
+
+  const formMult = (p: Player) =>
+    p.convenienza == null ? 1 : 1 + 0.12 * clamp((p.convenienza - 50) / 25, -1, 1);
+  const peso = (p: Player) => Math.pow(Math.max(0.5, p.qtA - 1), GAMMA) * formMult(p);
+
+  let wSum = tier.reduce((s, p) => s + peso(p), 0);
+  const distrib = pool - nSlot; // 1 credito riservato a ciascuno
+  const cap = Math.round(Math.max(BUDGET * 0.3, perTeam * (ruolo === 'A' ? 0.6 : 0.8)));
+
+  let extra = 0;
+  for (const p of tier) {
+    let prezzo = Math.round(1 + (distrib * peso(p)) / wSum);
+    if (prezzo > cap) {
+      extra += prezzo - cap;
+      prezzo = cap;
+    }
+    p.prezzoConsigliato = prezzo;
+  }
+  // ridistribuisci l'eccedenza dei "cappati" sugli altri del tier
+  if (extra > 0) {
+    const resto = tier.filter((p) => p.prezzoConsigliato! < cap);
+    const rSum = resto.reduce((s, p) => s + peso(p), 0) || 1;
+    for (const p of resto) p.prezzoConsigliato = Math.round(p.prezzoConsigliato! + (extra * peso(p)) / rSum);
+  }
+  for (const p of gruppo.slice(nSlot)) p.prezzoConsigliato = 1;
+
+  wSum = tier.reduce((s, p) => s + (p.prezzoConsigliato ?? 0), 0);
+  strategia[ruolo] = {
+    quotaPerSquadra: perTeam,
+    poolLega: pool,
+    slotLega: nSlot,
+    spesaTop: Math.round(wSum / N_SQUADRE),
+  };
+}
+
+// ---------- 7. Output ----------
 mkdirSync(OUT_DIR, { recursive: true });
 const list = [...players.values()].sort((a, b) => b.qtA - a.qtA || a.nome.localeCompare(b.nome));
 writeFileSync(join(OUT_DIR, 'players.json'), JSON.stringify(list));
@@ -305,6 +361,7 @@ const meta: PlayersMeta = {
   numGiocatori: list.length,
   conFpedia,
   senzaStoricoRecente: list.filter((p) => !p.storico[ULTIMA_CONCLUSA]).map((p) => p.id),
+  strategia,
 };
 writeFileSync(join(OUT_DIR, 'players.meta.json'), JSON.stringify(meta, null, 2));
 console.log(

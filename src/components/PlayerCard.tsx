@@ -33,17 +33,28 @@ export function PlayerCard({ playerId }: { playerId: number }) {
             {p.ruoloMantra.length ? ` · Mantra: ${p.ruoloMantra.join(' / ')}` : ''}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div>
-            <b style={{ fontSize: 22 }}>{p.qtA}</b> <span className="muted small">Qt.A</span>
-          </div>
-          <div className="muted small">
-            Qt.I {p.qtI} · FVM {p.fvm}
-          </div>
-          {u?.targetMax != null && (
-            <div style={{ color: 'var(--accent)', fontWeight: 700, marginTop: 2 }}>
-              rif. {u.targetMax}
-            </div>
+        <div style={{ textAlign: 'right', flex: 'none' }}>
+          {u?.targetMax != null ? (
+            <>
+              <div style={{ color: 'var(--accent)', fontWeight: 800, fontSize: 34, lineHeight: 1 }}>
+                {u.targetMax}
+              </div>
+              <div className="small" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                il tuo riferimento
+              </div>
+              <div className="muted small" style={{ marginTop: 3 }}>
+                Qt.A {p.qtA} · consigl. {p.prezzoConsigliato} · FVM {p.fvm}
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <b style={{ fontSize: 24 }}>{p.qtA}</b> <span className="muted small">Qt.A</span>
+              </div>
+              <div className="muted small">
+                consigl. {p.prezzoConsigliato} · Qt.I {p.qtI} · FVM {p.fvm}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -85,12 +96,38 @@ export function PlayerCard({ playerId }: { playerId: number }) {
         )}
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))' }}>
-        <Stat label="Convenienza" v={p.convenienza == null ? '–' : String(p.convenienza)} cls={convClass(p.convenienza)} />
-        <Stat label="FM pesata (3 st.)" v={fmt(p.fmPesata, 2)} />
-        <Stat label="Punteggio FCP" v={f.punteggioAlgoritmo != null ? `${f.punteggioAlgoritmo}/100` : '–'} />
-        <Stat label="Solidità inv." v={f.soliditaInvestimento != null ? `${f.soliditaInvestimento}%` : '–'} />
-        <Stat label="Res. infortuni" v={f.resistenzaInfortuni != null ? `${f.resistenzaInfortuni}%` : '–'} />
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))' }}>
+        <Stat
+          label="Prezzo consigliato"
+          v={String(p.prezzoConsigliato)}
+          title="Stima del prezzo d'asta in lega a 12 squadre / 500 crediti: ripartisce il monte crediti del reparto tra i migliori giocatori in base a Qt.A e forma recente. 1 = fuori dai titolari di reparto."
+        />
+        <Stat
+          label="Convenienza"
+          v={p.convenienza == null ? '–' : String(p.convenienza)}
+          cls={convClass(p.convenienza)}
+          title="0–100, per reparto. Quanto la fantamedia storica del giocatore supera quella tipica per il suo prezzo. 50 = in linea, >65 rende più di quanto costa. '–' = nessuno storico in Serie A."
+        />
+        <Stat
+          label="FM pesata (3 st.)"
+          v={fmt(p.fmPesata, 2)}
+          title="Fantamedia delle ultime 3 stagioni concluse, media pesata (25/26 ×0.5, 24/25 ×0.3, 23/24 ×0.2), solo stagioni con ≥5 presenze. È il rendimento storico del giocatore."
+        />
+        <Stat
+          label="Punteggio FCP"
+          v={f.punteggioAlgoritmo != null ? `${f.punteggioAlgoritmo}/100` : '–'}
+          title="Punteggio 0–100 dell'algoritmo di fantacalciopedia: la loro sintesi di quanto vale il giocatore per l'asta. Non calcolato da noi."
+        />
+        <Stat
+          label="Solidità inv."
+          v={f.soliditaInvestimento != null ? `${f.soliditaInvestimento}%` : '–'}
+          title="Solidità dell'investimento (fantacalciopedia): quanto è 'sicuro' puntarci — rischio panchina/bocciatura. Dato loro."
+        />
+        <Stat
+          label="Res. infortuni"
+          v={f.resistenzaInfortuni != null ? `${f.resistenzaInfortuni}%` : '–'}
+          title="Resistenza agli infortuni (fantacalciopedia): storico di tenuta fisica. Dato loro."
+        />
       </div>
 
       {(f.presenzePreviste || f.golPrevisti || f.assistPrevisti) && (
@@ -175,10 +212,12 @@ export function PlayerCard({ playerId }: { playerId: number }) {
   );
 }
 
-function Stat({ label, v, cls }: { label: string; v: string; cls?: string }) {
+function Stat({ label, v, cls, title }: { label: string; v: string; cls?: string; title?: string }) {
   return (
-    <div className="panel" style={{ padding: 8 }}>
-      <div className="small muted">{label}</div>
+    <div className="panel" style={{ padding: 8 }} title={title}>
+      <div className="small muted">
+        {label} {title ? <span style={{ opacity: 0.6 }}>ⓘ</span> : null}
+      </div>
       <div style={{ fontSize: 16, fontWeight: 700 }}>
         {cls ? <span className={`conv ${cls}`}>{v}</span> : v}
       </div>

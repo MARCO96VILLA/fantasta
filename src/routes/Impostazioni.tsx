@@ -194,7 +194,68 @@ export function Impostazioni() {
       </section>
 
       <section className="panel col">
+        <h2>Budget consigliato per reparto</h2>
+        <p className="small muted" style={{ margin: 0 }}>
+          Lega a 12 squadre, 500 crediti, rosa 3-8-8-6. Ripartizione di riferimento del budget
+          (modificabile: sono i "tetti per reparto" più sopra).
+        </p>
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Reparto</th>
+                <th className="num">Crediti / squadra</th>
+                <th className="num">% budget</th>
+                <th className="num">Spesa sui titolari*</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RUOLI.map((r) => {
+                const s = META.strategia[r];
+                return (
+                  <tr key={r}>
+                    <td>
+                      <span className={`role ${r}`}>{r}</span> {RUOLO_LABEL[r]}
+                    </td>
+                    <td className="num">{s.quotaPerSquadra}</td>
+                    <td className="num">{Math.round((s.quotaPerSquadra / settings.budget) * 100)}%</td>
+                    <td className="num">{s.spesaTop}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="small muted" style={{ margin: 0 }}>
+          * quanto spenderesti sui tuoi titolari di reparto seguendo il "prezzo consigliato"
+          di ogni giocatore; il resto (fino a 25 slot) va a 1–2 crediti.
+        </p>
+        <button
+          onClick={() => {
+            RUOLI.forEach((r) => setTetto(r, META.strategia[r].quotaPerSquadra));
+            setMsg('Tetti per reparto impostati sui valori consigliati.');
+          }}
+        >
+          Usa come tetti per reparto
+        </button>
+      </section>
+
+      <section className="panel col">
         <h2>Come funziona</h2>
+        <details>
+          <summary>
+            <b>Prezzo consigliato</b> (per giocatore)
+          </summary>
+          <p className="small">
+            Stima di quanto verrà pagato all'asta in una lega 12 squadre / 500 crediti.
+            Metodo: fisso il monte crediti del reparto (12 × quota qui sopra), individuo i
+            titolari del reparto (i 12 × slot giocatori con Qt.A più alta) e distribuisco il
+            monte tra loro <b>proporzionalmente a (Qt.A − 1)</b>, con una leggera
+            concentrazione sui top e un ritocco ±12% per la forma recente (convenienza).
+            Chi resta fuori vale ~1. Non è un prezzo da pagare per forza: è il valore di
+            mercato atteso, da confrontare col tuo <b>prezzo di riferimento</b>.
+          </p>
+        </details>
         <details>
           <summary>
             <b>Convenienza</b> (0–100)
@@ -203,11 +264,33 @@ export function Impostazioni() {
             Per ogni reparto stimo la fantamedia tipica in funzione del prezzo
             (<code>fm ≈ a + b·log(Qt.A)</code>) usando i giocatori con storico in Serie A.
             La convenienza misura di quanto la <b>fantamedia storica pesata</b> del
-            giocatore (ultime 3 stagioni, più peso alle recenti, penalizzando le poche
-            presenze) sta <b>sopra</b> quella attesa per il suo prezzo. 50 ≈ in linea col
+            giocatore sta <b>sopra</b> quella attesa per il suo prezzo. 50 ≈ in linea col
             prezzo, &gt;65 rende più di quanto costa, &lt;35 il contrario. Chi non ha
             storico in Serie A non ha un valore ("–").
           </p>
+        </details>
+        <details>
+          <summary>
+            <b>FM pesata</b>, <b>Punteggio FCP</b>, <b>Solidità</b>, <b>Res. infortuni</b>
+          </summary>
+          <div className="small col" style={{ gap: 4 }}>
+            <p style={{ margin: 0 }}>
+              <b>FM pesata (3 st.)</b> — fantamedia delle ultime 3 stagioni concluse, media
+              pesata (25/26 ×0.5, 24/25 ×0.3, 23/24 ×0.2), solo stagioni con ≥5 presenze,
+              con penalità per le poche presenze. È il rendimento storico.
+            </p>
+            <p style={{ margin: 0 }}>
+              <b>Punteggio FCP</b> — punteggio 0–100 dell'algoritmo di fantacalciopedia
+              (loro giudizio complessivo). Preso da loro, non calcolato.
+            </p>
+            <p style={{ margin: 0 }}>
+              <b>Solidità inv.</b> — quanto è "sicuro" l'investimento (rischio panchina /
+              bocciatura), % di fantacalciopedia.
+            </p>
+            <p style={{ margin: 0 }}>
+              <b>Res. infortuni</b> — storico di tenuta fisica, % di fantacalciopedia.
+            </p>
+          </div>
         </details>
         <details>
           <summary>

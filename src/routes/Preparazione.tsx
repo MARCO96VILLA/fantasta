@@ -8,12 +8,13 @@ import { fmt, convClass } from '../lib/format.ts';
 import { usePlayerModal } from '../components/PlayerModal.tsx';
 import { TagChips, TargetInput, InteresseStars } from '../components/TagPicker.tsx';
 
-type SortKey = 'qtA' | 'fvm' | 'fmPesata' | 'convenienza' | 'nome';
+type SortKey = 'qtA' | 'prezzoConsigliato' | 'fvm' | 'fmPesata' | 'convenienza' | 'nome';
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'qtA', label: 'Quotazione' },
-  { key: 'fvm', label: 'FVM' },
-  { key: 'fmPesata', label: 'FM storica' },
+  { key: 'prezzoConsigliato', label: 'Prezzo consigl.' },
   { key: 'convenienza', label: 'Convenienza' },
+  { key: 'fmPesata', label: 'FM storica' },
+  { key: 'fvm', label: 'FVM' },
   { key: 'nome', label: 'Nome' },
 ];
 
@@ -134,6 +135,17 @@ export function Preparazione() {
         </div>
       </div>
 
+      <div className="plist-head">
+        <span />
+        <span>Giocatore</span>
+        <span title="Quotazione">Qt</span>
+        <span title="Prezzo consigliato">Cons</span>
+        <span title="Fantamedia storica">FM</span>
+        <span title="Convenienza">Conv</span>
+        <span>Squadra</span>
+        <span>Caratteristiche</span>
+        <span>Rif. / Interesse</span>
+      </div>
       <div className="plist">
         {rows.slice(0, 400).map((p) => (
           <PRow key={p.id} p={p} onOpen={() => open(p.id, false)} />
@@ -151,14 +163,18 @@ function PRow({ p, onOpen }: { p: Player; onOpen: () => void }) {
       <span className="pname" onClick={onOpen} style={{ cursor: 'pointer' }}>
         {p.alias ?? p.nome}
       </span>
-      <span className="pnum qta" title="Quotazione attuale">
+      <span className="pnum qta" title="Quotazione attuale (fantacalcio.it)">
         {p.qtA}
       </span>
-      <span className="pnum fvm muted" title="Fanta valore di mercato">
-        {p.fvm}
+      <span
+        className="pnum cons"
+        style={{ color: 'var(--accent)', fontWeight: 700 }}
+        title="Prezzo d'asta consigliato (lega 12/500)"
+      >
+        {p.prezzoConsigliato}
       </span>
-      <span className="pnum fm muted" title="Fantamedia storica pesata">
-        {fmt(p.fmPesata, 2)}
+      <span className="pnum fm muted" title="Fantamedia storica pesata (3 stagioni)">
+        {fmt(p.fmPesata, 1)}
       </span>
       <span className="pconv">
         {p.convenienza == null ? (

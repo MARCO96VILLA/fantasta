@@ -412,8 +412,8 @@ button:focus-visible {
   border-radius: 12px;
   padding: 10px 12px;
   display: grid;
-  grid-template-columns: 24px minmax(110px, 1.3fr) 42px 42px 46px 40px 84px minmax(90px, 1fr) auto;
-  gap: 6px 10px;
+  grid-template-columns: 22px minmax(96px, 1.2fr) 38px 42px 38px 40px 74px minmax(84px, 1fr) auto;
+  gap: 6px 9px;
   align-items: center;
 }
 .prow .pname {
@@ -473,7 +473,7 @@ button:focus-visible {
 
 @media (max-width: 760px) {
   .prow {
-    grid-template-columns: 24px 1fr auto auto;
+    grid-template-columns: 22px 1fr auto auto auto;
     row-gap: 7px;
   }
   .prow .pname {
@@ -484,9 +484,13 @@ button:focus-visible {
     grid-row: 1;
     grid-column: 3;
   }
-  .prow .pconv {
+  .prow .pnum.cons {
     grid-row: 1;
     grid-column: 4;
+  }
+  .prow .pconv {
+    grid-row: 1;
+    grid-column: 5;
   }
   .prow .pnum.fvm,
   .prow .pnum.fm {
@@ -503,6 +507,28 @@ button:focus-visible {
   .prow .ptools {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+}
+/* intestazioni colonne per la lista giocatori (solo desktop) */
+.plist-head {
+  display: grid;
+  grid-template-columns: 22px minmax(96px, 1.2fr) 38px 42px 38px 40px 74px minmax(84px, 1fr) auto;
+  gap: 6px 9px;
+  padding: 0 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.plist-head span {
+  text-align: right;
+}
+.plist-head span:nth-child(2) {
+  text-align: left;
+}
+@media (max-width: 760px) {
+  .plist-head {
+    display: none;
   }
 }
 
@@ -612,23 +638,31 @@ table.data th.num {
   box-shadow: var(--shadow);
 }
 
-/* sticky bar per l'assegnazione in asta (mobile) */
+/* barra per l'assegnazione in asta */
 .assignbar {
   position: sticky;
   bottom: 0;
   background: var(--panel);
-  border-top: 1px solid var(--border-strong);
-  padding: 10px 0 0;
-  z-index: 10;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 12px;
+  z-index: 15;
 }
 @media (max-width: 760px) {
   .assignbar {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-radius: 14px 14px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px);
+    border-radius: 14px;
+    box-shadow: 0 -2px 24px rgba(0, 0, 0, 0.28);
+  }
+  /* dentro il modale (schermo intero) non c'è la bottom-nav: attacca in basso */
+  .modal .assignbar {
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+  }
+  /* lascia spazio sotto al contenuto per non finire dietro la barra */
+  .asta-picking {
+    padding-bottom: 200px;
   }
 }

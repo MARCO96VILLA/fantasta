@@ -39,7 +39,7 @@ export function Asta() {
   const recent = [...auction].sort((a, b) => b.ts - a.ts).slice(0, 15);
 
   return (
-    <div className="col" style={{ gap: 12, paddingBottom: selected != null ? 120 : 0 }}>
+    <div className={`col${selected != null ? ' asta-picking' : ''}`} style={{ gap: 12 }}>
       <div className="row wrap" style={{ justifyContent: 'space-between' }}>
         <h1>Asta · {auction.length}/{settings.teams.length * 25}</h1>
         <button className="small" onClick={undoLast} disabled={!auction.length}>

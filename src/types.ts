@@ -111,12 +111,20 @@ export interface Player {
   flagPerche: Partial<Record<FlagKey, string>>; // motivo del flag, es. "12 gol nel 2025-26"
   fpediaTags: string[]; // tag editoriali di fantacalciopedia (Fuoriclasse, Titolare, Panchinaro…)
   senzaStoricoSerieA: boolean; // true = flag stimati (nessuna stagione utile in A)
-  // indice calcolato dalla pipeline
+  // indici calcolati dalla pipeline
   convenienza: number | null; // 0-100, relativo al reparto
+  prezzoConsigliato: number; // stima del prezzo d'asta in lega 12/500 (1 se fuori dai top)
   fmPesata: number | null; // fantamedia storica pesata
   affidabilita: number | null; // 0-1, quante presenze / continuità
   // provenienza di ogni campo per l'editing manuale in-app
   fonti: Record<string, 'listone' | 'stats' | 'fpedia' | 'euristica'>;
+}
+
+export interface RepartoStrategia {
+  quotaPerSquadra: number; // crediti consigliati per quel reparto (su 500)
+  poolLega: number; // crediti totali stimati sul reparto nella lega
+  slotLega: number; // giocatori acquistati in totale (12 × slot rosa)
+  spesaTop: number; // spesa media/squadra sui titolari del reparto secondo il modello
 }
 
 export interface PlayersMeta {
@@ -126,6 +134,7 @@ export interface PlayersMeta {
   numGiocatori: number;
   conFpedia: number;
   senzaStoricoRecente: number[]; // id senza stats nell'ultima stagione conclusa
+  strategia: Record<Ruolo, RepartoStrategia>;
 }
 
 // ---- Dati utente (persistiti nel browser) ----

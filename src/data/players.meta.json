@@ -1,5 +1,5 @@
 {
-  "generatoIl": "2026-09-04T08:58:56.161Z",
+  "generatoIl": "2026-09-04T09:45:16.584Z",
   "stagioneCorrente": "2026-27",
   "stagioni": [
     "2023-24",
@@ -178,5 +178,31 @@
     7622,
     6569,
     7475
-  ]
+  ],
+  "strategia": {
+    "P": {
+      "quotaPerSquadra": 35,
+      "poolLega": 420,
+      "slotLega": 36,
+      "spesaTop": 35
+    },
+    "D": {
+      "quotaPerSquadra": 75,
+      "poolLega": 900,
+      "slotLega": 96,
+      "spesaTop": 75
+    },
+    "C": {
+      "quotaPerSquadra": 150,
+      "poolLega": 1800,
+      "slotLega": 96,
+      "spesaTop": 150
+    },
+    "A": {
+      "quotaPerSquadra": 240,
+      "poolLega": 2880,
+      "slotLega": 72,
+      "spesaTop": 240
+    }
+  }
 }
