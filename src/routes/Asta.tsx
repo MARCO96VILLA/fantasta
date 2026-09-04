@@ -145,7 +145,7 @@ export function Asta() {
             </button>
           </div>
           <div className="panel">
-            <PlayerCard playerId={selected} />
+            <PlayerCard key={selected} playerId={selected} />
           </div>
           <AssignPanel playerId={selected} onDone={afterAssign} />
         </>

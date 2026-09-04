@@ -45,7 +45,7 @@ export function PlayerModal() {
           </button>
         </div>
         <div className="col" style={{ padding: '0 16px 18px', gap: 14 }}>
-          <PlayerCard playerId={playerId} />
+          <PlayerCard key={playerId} playerId={playerId} />
           {withAssign && (
             <div style={{ paddingBottom: 96 }}>
               <AssignPanel playerId={playerId} onDone={close} />
