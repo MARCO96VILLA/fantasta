@@ -124,7 +124,7 @@ export function Asta() {
             )}
           </div>
 
-          <PlayerList onPick={pick} />
+          <PlayerList onPick={pick} showNameFilter={false} />
         </>
       ) : (
         <>

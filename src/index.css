@@ -458,6 +458,24 @@ button:focus-visible {
   gap: 4px;
   flex-wrap: wrap;
 }
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-grid select {
+  flex: 1 1 160px;
+  width: auto;
+}
+@media (max-width: 760px) {
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .filter-grid select {
+    width: 100%;
+  }
+}
 .sortbar {
   display: flex;
   gap: 6px;

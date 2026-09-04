@@ -18,7 +18,13 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 /** Elenco giocatori filtrabile/ordinabile, riusato in Preparazione e in Asta. */
-export function PlayerList({ onPick }: { onPick: (id: number) => void }) {
+export function PlayerList({
+  onPick,
+  showNameFilter = true,
+}: {
+  onPick: (id: number) => void;
+  showNameFilter?: boolean;
+}) {
   const userData = useStore((s) => s.userData);
   const settings = useStore((s) => s.settings);
   const auction = useStore((s) => s.auction);
@@ -33,6 +39,7 @@ export function PlayerList({ onPick }: { onPick: (id: number) => void }) {
   const [soloObiettivi, setSoloObiettivi] = useState(false);
   const [sort, setSort] = useState<SortKey>('qtA');
   const [asc, setAsc] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const taken = useMemo(() => takenIndex(settings, auction), [settings, auction]);
 
@@ -62,48 +69,82 @@ export function PlayerList({ onPick }: { onPick: (id: number) => void }) {
     return list;
   }, [userData, ruolo, squadra, tag, flag, q, hideTaken, soloObiettivi, sort, asc, taken]);
 
+  const tagLabel = tagDefs.find((t) => t.id === tag)?.label;
+  const flagLabel = FLAG_META.find((f) => f.key === flag)?.label;
+  const activeFilters: { label: string; clear: () => void }[] = [
+    ...(showNameFilter && q.trim() ? [{ label: `"${q.trim()}"`, clear: () => setQ('') }] : []),
+    ...(ruolo ? [{ label: RUOLO_LABEL[ruolo], clear: () => setRuolo('') }] : []),
+    ...(squadra ? [{ label: squadra, clear: () => setSquadra('') }] : []),
+    ...(tag && tagLabel ? [{ label: tagLabel, clear: () => setTag('') }] : []),
+    ...(flag && flagLabel ? [{ label: flagLabel, clear: () => setFlag('') }] : []),
+  ];
+
   return (
     <div className="col" style={{ gap: 10 }}>
       <div className="panel col" style={{ gap: 8 }}>
-        <div className="row wrap" style={{ gap: 8 }}>
-          <input
-            type="search"
-            placeholder="Filtra per nome…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{ flex: '1 1 140px' }}
-          />
-          <select value={ruolo} onChange={(e) => setRuolo(e.target.value as Ruolo | '')} style={{ flex: '0 1 auto', width: 'auto' }}>
-            <option value="">Ruolo</option>
-            {RUOLI.map((r) => (
-              <option key={r} value={r}>
-                {RUOLO_LABEL[r]}
-              </option>
+        <button
+          className="ghost small"
+          style={{ alignSelf: 'flex-start', padding: '4px 2px' }}
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          {filtersOpen ? '▾' : '▸'} Filtri{activeFilters.length ? ` (${activeFilters.length})` : ''}
+        </button>
+
+        {!filtersOpen && activeFilters.length > 0 && (
+          <div className="row wrap small" style={{ gap: 6 }}>
+            {activeFilters.map((f, i) => (
+              <button key={i} className="chip off" onClick={f.clear} title="Rimuovi filtro">
+                {f.label} ✕
+              </button>
             ))}
-          </select>
-          <select value={squadra} onChange={(e) => setSquadra(e.target.value)} style={{ flex: '0 1 auto', width: 'auto' }}>
-            <option value="">Squadra</option>
-            {SQUADRE.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-          <select value={tag} onChange={(e) => setTag(e.target.value)} style={{ flex: '0 1 auto', width: 'auto' }}>
-            <option value="">Tag</option>
-            {tagDefs.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <select value={flag} onChange={(e) => setFlag(e.target.value)} style={{ flex: '0 1 auto', width: 'auto' }}>
-            <option value="">Caratteristica</option>
-            {FLAG_META.map((f) => (
-              <option key={f.key} value={f.key}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </div>
+          </div>
+        )}
+
+        {filtersOpen && (
+          <div className="col" style={{ gap: 8 }}>
+            {showNameFilter && (
+              <input
+                type="search"
+                placeholder="Filtra per nome…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            )}
+            <div className="filter-grid">
+              <select value={ruolo} onChange={(e) => setRuolo(e.target.value as Ruolo | '')}>
+                <option value="">Ruolo</option>
+                {RUOLI.map((r) => (
+                  <option key={r} value={r}>
+                    {RUOLO_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+              <select value={squadra} onChange={(e) => setSquadra(e.target.value)}>
+                <option value="">Squadra</option>
+                {SQUADRE.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+              <select value={tag} onChange={(e) => setTag(e.target.value)}>
+                <option value="">Tag</option>
+                {tagDefs.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <select value={flag} onChange={(e) => setFlag(e.target.value)}>
+                <option value="">Caratteristica</option>
+                {FLAG_META.map((f) => (
+                  <option key={f.key} value={f.key}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         <div className="row wrap" style={{ gap: 12, justifyContent: 'space-between' }}>
           <div className="sortbar">
             {SORTS.map((s) => (
