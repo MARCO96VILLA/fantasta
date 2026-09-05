@@ -596,10 +596,15 @@ table.data th.num {
 
 /* ---------- Squadre: barra di scroll laterale per selezionare la rosa ---------- */
 .team-tabs {
+  position: sticky;
+  z-index: 15;
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  overflow-y: hidden;
+  padding: 8px 0;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--border);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
