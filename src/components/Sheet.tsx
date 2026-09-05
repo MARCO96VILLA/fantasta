@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useCloseOnBack } from '../lib/useCloseOnBack.ts';
 
 /** Pulsante a icona che apre un pannello a scorrimento, richiudibile toccando fuori. */
 export function SheetButton({
@@ -13,6 +14,7 @@ export function SheetButton({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  useCloseOnBack(open, () => setOpen(false));
   return (
     <>
       <button className={open ? 'primary' : ''} onClick={() => setOpen((o) => !o)}>

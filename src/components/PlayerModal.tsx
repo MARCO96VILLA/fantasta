@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { create } from 'zustand';
 import { PlayerCard } from './PlayerCard.tsx';
 import { AssignPanel } from './AssignPanel.tsx';
+import { useCloseOnBack } from '../lib/useCloseOnBack.ts';
 
 interface ModalState {
   playerId: number | null;
@@ -24,6 +25,7 @@ export function PlayerModal() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [playerId, close]);
+  useCloseOnBack(playerId != null, close);
 
   if (playerId == null) return null;
   return (

@@ -10,6 +10,7 @@ import { AssignPanel } from '../components/AssignPanel.tsx';
 import { usePlayerModal } from '../components/PlayerModal.tsx';
 import { PlayerList } from '../components/PlayerList.tsx';
 import { SheetButton } from '../components/Sheet.tsx';
+import { useCloseOnBack } from '../lib/useCloseOnBack.ts';
 
 export function Asta() {
   const settings = useStore((s) => s.settings);
@@ -30,6 +31,8 @@ export function Asta() {
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+
+  useCloseOnBack(selected != null, () => setSelected(null));
 
   function pick(id: number) {
     setSelected(id);
